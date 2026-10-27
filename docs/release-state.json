@@ -1,0 +1,12 @@
+{
+  "Schema": 1,
+  "Product": "Windows-Keyboard-Mouse-Bridge",
+  "DriverVersion": "0.1.0.0",
+  "DemoSeconds": 3600,
+  "SigningPending": false,
+  "MicrosoftSigned": true,
+  "SignatureAndSubmissionMatchVerified": true,
+  "SubmissionId": "1152921505702244730",
+  "SignedInstallerLiveValidationPending": true,
+  "ReleaseUrl": "https://github.com/StrikeFound/Windows-Keyboard-Mouse-Bridge/releases/tag/v0.1.0.0"
+}

@@ -1,0 +1,14 @@
+{
+  "Name": "Windows-Keyboard-Mouse-Bridge",
+  "DisplayName": "Windows Keyboard Mouse Bridge",
+  "Service": "WindowsKeyboardMouseBridge",
+  "DriverFile": "WindowsKeyboardMouseBridge.sys",
+  "Version": "0.1.0.0",
+  "InputMask": 3,
+  "ControllerMask": 0,
+  "Packages": [
+    "WindowsKeyboardMouseBridgeKeyboard.inf",
+    "WindowsKeyboardMouseBridgeMouse.inf",
+    "WindowsKeyboardMouseBridgeControl.inf"
+  ]
+}

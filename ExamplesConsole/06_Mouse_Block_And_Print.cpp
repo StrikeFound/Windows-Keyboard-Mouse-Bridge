@@ -1,40 +1,57 @@
 #include "InputBridge.h"
 #include <iostream>
-#include <string_view>
 #include <system_error>
 using namespace InputBridge;
 
-int main(int argc, char** argv) try {
-    std::cout << "Print and block mouse input. Keyboard and controller input keep working.\n"
-                 "Run one example at a time as administrator. Close this window or press Ctrl+C to stop.\n" << std::flush;
-    if (argc == 2 && std::string_view(argv[1]) == "--help") return 0;
-    if (argc != 1) throw std::invalid_argument("Run without arguments, or use --help.");
-    Status(); // Read-only check: this edition's installed driver must respond.
+int main() try {
+    std::cout
+        << "Print and block mouse input. Keyboard and controller input keep working.\n"
+           "Run one example at a time as administrator. Close this window or press Ctrl+C to stop.\n"
+        << std::flush;
+    // Check installation and initialize supported devices before capturing.
+    Status();
     const auto init = Initialize();
     if (init.reboot_required) {
         std::cerr << "Restart Windows, then run this example again.\n";
         return ERROR_SUCCESS_REBOOT_REQUIRED;
     }
     if (!init.ready) {
-        std::cerr << "Initialization failed: " << init.error_detail << ". Windows error: " << init.error << ". Restart required: " << init.reboot_required << "\n";
+        std::cerr << "Initialization failed: " << init.error_detail
+                  << ". Windows error: " << init.error
+                  << ". Restart required: " << init.reboot_required << "\n";
         return 1;
     }
-    DWORD consoleMode = 0; // Avoid Quick Edit pausing capture in the classic Windows console.
-    if (GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &consoleMode))
-        SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), (consoleMode | ENABLE_EXTENDED_FLAGS) & ~ENABLE_QUICK_EDIT_MODE);
+    DWORD consoleMode = 0; // Console only: prevent text selection from blocking console writes.
+    if (GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &consoleMode)) {
+        SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE),
+                       (consoleMode | ENABLE_EXTENDED_FLAGS) & ~ENABLE_QUICK_EDIT_MODE);
+    }
     for (;;) {
-        auto inputs = Read(INFINITE); // Wait for a batch; the library owns the capture.
-        for (auto& input : inputs) if (input.Get<MouseEvent >()) input.blocked = true;
-        const auto sent = Write(inputs); // Forward every unblocked entry, including other device types.
-        if (!sent) throw std::system_error(sent.error, std::system_category(), "Write");
-        for (auto& input : inputs) if (auto* mouse = input.Get<MouseEvent>()) {
-            input.blocked = true; // Other input families are forwarded below.
-            std::cout << "Mouse " << mouse->device << ": x=" << mouse->state.x << " y=" << mouse->state.y
-                      << " buttons=" << mouse->state.button_flags << " wheel=" << mouse->state.button_data << '\n';
+        // Receive: wait for input without polling.
+        auto inputs = Read(INFINITE);
+        for (auto& input : inputs) {
+            if (input.Get<MouseEvent>()) {
+                input.blocked = true;
+            }
+        }
+        // Forward: send all unblocked inputs, including other device types.
+        const auto sent = Write(inputs);
+        if (!sent) {
+            throw std::system_error(sent.error, std::system_category(), "Write");
+        }
+        for (auto& input : inputs) {
+            if (auto* mouse = input.Get<MouseEvent>()) {
+                input.blocked = true; // Other input families are forwarded below.
+                std::cout << "Mouse " << mouse->device << ": x=" << mouse->state.x
+                          << " y=" << mouse->state.y << " buttons=" << mouse->state.button_flags
+                          << " wheel=" << mouse->state.button_data << '\n';
+            }
         }
     }
 } catch (const std::system_error& error) {
-    std::cerr << "Driver error: " << error.what() << ". Windows error: " << error.code().value() << ". Install this edition with InputBridgeSetup.exe, restart if requested, and run as administrator.\n";
+    std::cerr
+        << "Driver error: " << error.what() << ". Windows error: " << error.code().value()
+        << ". Install this edition with InputBridgeSetup.exe, restart if requested, and run as administrator.\n";
     return 1;
 } catch (const std::exception& error) {
     std::cerr << error.what() << '\n';

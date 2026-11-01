@@ -37,7 +37,6 @@ int main() try {
     }
     std::map<std::uint64_t, KeyboardEvent> held;
     std::set<std::uint32_t> consumedH;
-    bool capsLock = (GetKeyState(VK_CAPITAL) & 1) != 0;
     for (;;) {
         auto inputs = Read(INFINITE);
         for (auto& input : inputs) {
@@ -51,9 +50,6 @@ int main() try {
                     held.erase(id);
                 } else {
                     held[id] = *key;
-                }
-                if (code == 0x3A && !(key->state.flags & (KeyE0 | KeyE1)) && !up && !repeat) {
-                    capsLock = !capsLock;
                 }
                 bool control = false, altOrWindows = false;
                 for (const auto& entry : held) {
@@ -88,15 +84,10 @@ int main() try {
                                 text.push_back(release);
                             }
                         }
-                        if (capsLock) {
-                            emit(0x2A, false);
-                        }
+                        // Send letter scan codes; Windows determines letter case.
                         for (const auto scan : {0x23, 0x12, 0x26, 0x26, 0x18}) {
                             emit(static_cast<std::uint16_t>(scan), false);
                             emit(static_cast<std::uint16_t>(scan), true);
-                        }
-                        if (capsLock) {
-                            emit(0x2A, true);
                         }
                         for (const auto& entry : held) {
                             if (Modifier(entry.second)) {
